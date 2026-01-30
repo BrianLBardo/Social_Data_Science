@@ -1,0 +1,697 @@
+---
+title: "Kvantetativ tekstanalyse - eksamen"
+output: html_notebook
+---
+
+**Indlæsning af pakker** 
+```{r}
+### Pakken til indlæsning af txt-filen i Del 1 af opgaven
+#install.packages("stringr")
+library(stringr)
+
+### Håndtering af dataframes
+#install.packages("tidyverse")
+library(tidyverse)
+
+### Pakken til behandling af text
+#install.packages("quanteda")
+library(quanteda)
+
+#install.packages("quanteda.textstats")
+library(quanteda.textstats)
+
+### Pakke til at fjerne stopord
+#install.packages("stopwords")
+library(stopwords)
+
+### Pakke til LDA topic model
+#install.packages("seededlda")
+library(seededlda)
+
+
+### Pakker til Oolong-test
+#install.packages("devtools")
+#devtools::install_github("chainsawriot/oolong")
+library(oolong)
+library(keyATM)
+
+## ggplot2 skal muligvis opdateres 3.4.0 for at køre oolong testen 
+#install.packages("ggplot2")
+
+### Pakken vi henter vores data fra
+#install.packages("textdata")
+#library(textdata)
+```
+
+
+### Del 1 af eksamen
+**Indlæsning af stringr pakke og data**
+
+```{r}
+data <- paste(readLines("/work/375031/Kvant Eksamen/Opgave_1_raa_txt.txt"), collapse = "\n")
+```
+
+**Regex bruges og kolonner laves, samt indsættes i df** 
+```{r}
+Opgave_1_data_final <- (data.frame(
+  municipality = str_extract_all(data, "(?<=:\\s)[A-Z|Æ|Ø|Å][a-z|æ|ø|å]+(?=\\sKommune)"), 
+    start_date = str_extract_all(data, "(?<=\\t)[0-9]+\\s[a-z]+\\s[0-9]+"), 
+      technology_type = str_extract_all(data, "(?<=Teknologi:\\s)[A-Z|Æ|Ø|Å][a-z|æ|ø|å]+")))
+
+```
+
+**Kolonne navne ændres**
+```{r}
+colnames(Opgave_1_data_final) <- c("municipility", "start_date", "technology_type")
+```
+
+
+### Del 2 af eksamen
+**Indlæser parl_speech filen med folketingsreferater ind**
+```{r}
+load("/work/375031/Kvant Eksamen/parl_speech_sub.Rdata")
+DF <- parl_speech_sub #Definer den indlæste data til en dataframe
+```
+
+**Her bruges dplyr fra tidyverse til at udvælge kolonner fra dataframen, der anvendes i besvarelsen**
+```{r}
+DF <- select(DF, date, text, party)
+```
+
+**Fjernelse af tegnsætninger fra text kolonne, med brug af regular expression**
+```{r}
+DF$text <- str_replace_all(DF$text, "[:punct:]", "")
+```
+
+
+________________________________________________________________________________
+
+
+**I det følgende afsnit laves der en ny kolonne med, hvor ofte de respektive interesseorganisation nævnes i datasættet**
+Der laves tre nye kolonner:  
+
+* Optælling af 3F 
+* Optælling af FOA  
+  * Anvendes til at teste Hypotese 2
+
+* Optælling af 3F og FOA  
+  * Anvendes til at teste Hypotese 1  
+
+
+**3F**
+```{r}
+DF$"3F_count" <- str_count(DF$text, "3F")
+```
+
+**FOA**
+```{r}
+DF$FOA_count <- str_count(DF$text, "FOA")
+```
+
+**3F og FOA**
+```{r}
+DF$FOA_3F_count <- str_count(DF$text, "3F") + str_count(DF$text, "FOA")
+```
+
+**Beregner summen af dataet i et nyt dataframe**
+```{r}
+DF_FOA_3F_count <- aggregate(DF$"FOA_3F_count", by=list(DF$party), sum)
+```
+
+**Ændrer kolonnenavne og returnerer strenge med erstattede værdier**
+```{r}
+colnames(DF_FOA_3F_count) <- c("Parti", "Hyppighed")
+
+DF_FOA_3F_count$Parti <- sub("S", "S-FOA-3F",DF_FOA_3F_count$Parti)
+
+DF_FOA_3F_count$Parti <- sub("V", "V-FOA-3F",DF_FOA_3F_count$Parti)
+
+```
+
+**Visualisering af data**  
+Visualisering af det samlede antal gange FOA og 3F nævnes i talerne pr. parti  
+```{r}
+ggplot(DF_FOA_3F_count, aes(Parti, Hyppighed, fill = Parti)) +
+  geom_bar(stat = "identity", width = 0.7) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_x_discrete(labels=c("S-FOA-3F" = "S", "V-FOA-3F" = "V")) +
+  labs(title = "Hyppighed af 3F og FOA, fordelt efter parti", x = "Partier", y = "Hyppighed") +
+  theme(strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        legend.position = "none")
+```
+
+
+Der laves tre yderligere kolonner:   
+
+* Optælling af DA 
+* Optælling af DI  
+  * Anvendes til at teste Hypotese 2
+
+* Optælling af DA og DI  
+  * Anvendes til at teste Hypotese 1 
+
+**Dansk Industri**
+Der søges både på det fulde navn, samt forkortelsen "DI"
+```{r}
+DF$DI_count <- str_count(DF$text, "Dansk Industri|\\sDI\\b") 
+```
+
+**Dansk Arbejdsgiverforening**
+Samme som ovenstående, blot med forkortelsen "DA"
+```{r}
+DF$DA_count <- str_count(DF$text, "Dansk Arbejdsgiverforening|\\sDA\\b") 
+```
+
+**DA og DI**
+```{r}
+DF$DA_DI_count <- str_count(DF$text, "Dansk Arbejdsgiverforening|\\sDA\\b") + str_count(DF$text, "Dansk Industri|\\sDI\\b") 
+```
+
+
+**Beregner summen af dataet i et en ny dataframe**
+```{r}
+DF_DA_DI_count <- aggregate(DF$"DA_DI_count", by=list(DF$party), sum)
+```
+
+**Ændrer kolonnenavne og returnerer strenge med erstattede værdier**
+```{r}
+colnames(DF_DA_DI_count) <- c("Parti", "Hyppighed")
+
+DF_DA_DI_count$Parti <- sub("S", "S-DA-DI",DF_DA_DI_count$Parti)
+
+DF_DA_DI_count$Parti <- sub("V", "V-DA-DI",DF_DA_DI_count$Parti)
+
+```
+
+**Visualisering af plottet**  
+Visualisering af det samlede antal gange DA og DI nævnes i talerne pr. parti  
+```{r}
+ggplot(DF_DA_DI_count, aes(Parti, Hyppighed, fill = Parti))+
+  geom_bar(stat = "identity", width = 0.7)+
+  scale_y_continuous(expand = c(0,0))+
+  scale_x_discrete(labels=c("S-DA-DI" = "S", "V-DA-DI" = "V")) +
+  labs(title = "Hyppighed af DA og DI, fordelt efter parti", x = "Partier", y = "Hyppighed")+
+  theme(strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        legend.position = "none")
+```
+
+
+________________________________________________________________________________
+
+
+
+**Denne del omhandler visualisering af partiernes referencer til IO'erne, før og efter regeringsperiode**
+
+
+**Definérer en start dato for folketingsvalget 2015**
+```{r}
+folketings_valg <- as.Date("2015-06-18")
+```
+
+**Returnere nye dataframes for S og V**
+```{r}
+DF_S <- DF[, c("text", "date", "party", "3F_count", "FOA_count", "DA_count", "DI_count")] %>% 
+  filter(!grepl("V", party))
+
+DF_S <- DF_S %>% 
+  mutate(s_regering = DF_S$date < folketings_valg)
+
+DF_V <- DF[, c("text", "date", "party", "3F_count", "FOA_count", "DA_count", "DI_count")] %>% 
+  filter(!grepl("S", party)) 
+
+DF_V <- DF_V %>% 
+  mutate(v_regering = DF_V$date < folketings_valg)
+```
+
+
+**Beregning af summen af datoer, derefter ændres kolonnenavnene og erstatter matches med ny tekst. Gentages for hver interesseorganisation for Socialdemokratiet**  
+Der indsættes yderligere en variabel: "group", som anvendes i plottet nedenfor til at gruppere tallene fra de samme interesseorganisationer og opdeler dem efter regeringsstatus   
+```{r}
+DF_S_3F <- aggregate(DF_S$"3F_count", list(DF_S$s_regering), sum)
+
+colnames(DF_S_3F) <- c("regeringsstatus", "hyppighed")
+
+DF_S_3F$regeringsstatus <- str_replace(DF_S_3F$regeringsstatus, "TRUE", "3F - I regering")
+
+DF_S_3F$regeringsstatus <- str_replace(DF_S_3F$regeringsstatus, "FALSE", "3F - Opposition")
+
+DF_S_3F <- DF_S_3F %>% 
+  mutate(group = 1)
+
+DF_S_FOA <- aggregate(DF_S$"FOA_count", list(DF_S$s_regering), sum)
+
+colnames(DF_S_FOA) <- c("regeringsstatus", "hyppighed")
+
+DF_S_FOA$regeringsstatus <- str_replace(DF_S_FOA$regeringsstatus, "TRUE", "FOA - I regering")
+
+DF_S_FOA$regeringsstatus <- str_replace(DF_S_FOA$regeringsstatus, "FALSE", "FOA - Opposition")
+
+DF_S_FOA <- DF_S_FOA %>% 
+  mutate(group = 2)
+
+DF_S_DI <- aggregate(DF_S$"DI_count", list(DF_S$s_regering), sum)
+
+colnames(DF_S_DI) <- c("regeringsstatus", "hyppighed")
+
+DF_S_DI$regeringsstatus <- str_replace(DF_S_DI$regeringsstatus, "TRUE", "DI - I regering")
+
+DF_S_DI$regeringsstatus <- str_replace(DF_S_DI$regeringsstatus, "FALSE", "DI - Opposition")
+
+DF_S_DI <- DF_S_DI %>% 
+  mutate(group = 3)
+
+DF_S_DA <- aggregate(DF_S$"DA_count", list(DF_S$s_regering), sum)
+
+colnames(DF_S_DA) <- c("regeringsstatus", "hyppighed")
+
+DF_S_DA$regeringsstatus <- str_replace(DF_S_DA$regeringsstatus, "TRUE", "DA - I regering")
+
+DF_S_DA$regeringsstatus <- str_replace(DF_S_DA$regeringsstatus, "FALSE", "DA - Opposition")
+
+DF_S_DA <- DF_S_DA %>% 
+  mutate(group = 4)
+```
+
+
+Der indsættes yderligere en variabel: "group", som anvendes i plottet nedenfor til at gruppere tallene fra de samme interesseorganisationer og opdeler dem efter regeringsstatus  
+```{r}
+DF_V_3F <- aggregate(DF_V$"3F_count", list(DF_V$v_regering), sum)
+
+colnames(DF_V_3F) <- c("regeringsstatus", "hyppighed")
+
+DF_V_3F$regeringsstatus <- str_replace(DF_V_3F$regeringsstatus, "TRUE", "3F - I regering")
+
+DF_V_3F$regeringsstatus <- str_replace(DF_V_3F$regeringsstatus, "FALSE", "3F - Opposition")
+
+DF_V_3F <- DF_V_3F %>% 
+  mutate(group = 1)
+
+DF_V_FOA <- aggregate(DF_V$"FOA_count", list(DF_V$v_regering), sum)
+
+colnames(DF_V_FOA) <- c("regeringsstatus", "hyppighed")
+
+DF_V_FOA$regeringsstatus <- str_replace(DF_V_FOA$regeringsstatus, "TRUE", "FOA - I regering")
+
+DF_V_FOA$regeringsstatus <- str_replace(DF_V_FOA$regeringsstatus, "FALSE", "FOA - Opposition")
+
+DF_V_FOA <- DF_V_FOA %>% 
+  mutate(group = 2)
+
+DF_V_DI <- aggregate(DF_V$"DI_count", list(DF_V$v_regering), sum)
+
+colnames(DF_V_DI) <- c("regeringsstatus", "hyppighed")
+
+DF_V_DI$regeringsstatus <- str_replace(DF_V_DI$regeringsstatus, "TRUE", "DI - I regering")
+
+DF_V_DI$regeringsstatus <- str_replace(DF_V_DI$regeringsstatus, "FALSE", "DI - Opposition")
+
+DF_V_DI <- DF_V_DI %>% 
+  mutate(group = 3)
+
+DF_V_DA <- aggregate(DF_V$"DA_count", list(DF_V$v_regering), sum)
+
+colnames(DF_V_DA) <- c("regeringsstatus", "hyppighed")
+
+DF_V_DA$regeringsstatus <- str_replace(DF_V_DA$regeringsstatus, "TRUE", "DA - I regering")
+
+DF_V_DA$regeringsstatus <- str_replace(DF_V_DA$regeringsstatus, "FALSE", "DA - Opposition")
+
+DF_V_DA <- DF_V_DA %>% 
+  mutate(group = 4)
+```
+
+**De enkelte dataframes sættes sammen til én, for hvert parti**
+```{r}
+DF_S_reg <- rbind(DF_S_3F, DF_S_FOA, DF_S_DI, DF_S_DA)
+
+DF_V_reg <- rbind(DF_V_3F, DF_V_FOA, DF_V_DI, DF_V_DA)
+```
+
+**Der laves en dummy for, hvorvidt S er i regering eller ej**
+```{r}
+DF_S_reg <- DF_S_reg %>% 
+  mutate(regeringstatus_dummy = str_extract(DF_S_reg$regeringsstatus, "Opposition|I regering"))
+```
+
+
+**Der konstrueres en liste med IO-navne**
+```{r}
+IO_navne <- c("1" = "3F", 
+              "2" = "FOA",
+              "3" = "DI",
+              "4"= "DA"
+              )
+```
+
+
+**Visualisering af data**
+```{r}
+ggplot(DF_S_reg, aes(x=regeringsstatus, y=hyppighed, fill=regeringstatus_dummy)) +
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_fill_discrete(name = "Regeringsstatus", labels=c('I regering', 'I opposition')) +
+  labs(title = "Socialdemokratiet", 
+       x = "Interesseorganisationer", 
+       y = "Hyppighed", 
+       subtitle = "Hyppighed af nævnte interesseorganisationer, fordelt efter regeringsstatus") +
+  facet_grid(~group, labeller = as_labeller(IO_navne), scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+**Venstre**
+```{r}
+DF_V_reg <- DF_V_reg %>% 
+  mutate(regeringstatus_dummy = str_extract(DF_V_reg$regeringsstatus, "Opposition|I regering"))
+```
+
+**Visualisering af data**
+```{r}
+ggplot(DF_V_reg, aes(x=regeringsstatus, y=hyppighed, fill=regeringstatus_dummy)) +
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0)) +
+  scale_fill_discrete(name = "Regeringsstatus", labels=c('I regering', 'I opposition')) +
+  labs(title = "Venstre", 
+       x = "Interesseorganisationer", 
+       y = "Hyppighed", 
+       subtitle = "Hyppighed af nævnte interesseorganisationer, fordelt efter regeringsstatus") +
+  facet_grid(~group, labeller = as_labeller(IO_navne), scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+
+
+________________________________________________________________________________
+**Brug koden nedenfor til at rydde lidt op i Environment-vinduet**
+```{r}
+rm(DF_DA_DI_count, DF_FOA_3F_count, DF_S, DF_S_3F, DF_S_DA, DF_S_DI, DF_S_FOA, DF_S_reg, DF_V, DF_V_3F, DF_V_DA, DF_V_DI, DF_V_FOA, DF_V_reg, Opgave_1_data_final, parl_speech_sub, data, IO_navne)
+```
+
+________________________________________________________________________________
+
+
+**Topic analyse**
+```{r}
+folketings_valg <- as.Date("2015-06-18")
+```
+
+
+**Der tilføjes en kolonne for hvert partis regeringstatus**
+```{r}
+DF <- DF %>% 
+  mutate(regering_s = DF$date < folketings_valg, 
+         regering_v = DF$date > folketings_valg)
+```
+
+**3F_count omdøbes til treF_count**
+```{r}
+DF <- DF %>% 
+  rename(treF_count = "3F_count")
+```
+
+
+**Subsetter til en ny dataframe med relevante variabler**  
+Medtager kun rækker, hvor mindst én af IO'erne fremgår  
+```{r}
+DF_topic <- DF[,c("date","party", "regering_s", "regering_v", "text", "treF_count", "FOA_count", "DA_count", "DI_count")] %>% 
+  filter(FOA_count > 0 | DA_count > 0 | DI_count > 0 | treF_count > 0)
+
+DF_topic[,c("regering_s", "regering_v")] <- str_replace(c(DF_topic$regering_s, DF_topic$regering_v), "TRUE", "I regering")
+DF_topic[,c("regering_s", "regering_v")] <- str_replace(c(DF_topic$regering_s, DF_topic$regering_v), "FALSE", "Opposition")
+```
+
+**Corpus-konstruering**
+```{r}
+topic_corp <- corpus(DF_topic, text_field = "text")
+```
+
+**Tokenization**
+```{r}
+topic_tokens <- tokens(topic_corp, 
+                       remove_punct = TRUE, 
+                       remove_numbers = TRUE, 
+                       remove_symbols = TRUE)
+
+head(topic_tokens)
+```
+
+
+**Der laves en liste med custom stopord**
+```{r}
+custom_stopwords <- c("se", "ser", "kan", "hvert", "fald", "simpelt", "hen", "faktisk", "stadig", "væk", "gøre", "komme", "så", "sige", "lige", "lidt", "mere", "hr", "fru", "frøken", "frem", "måtte", "ved", "derfor", "fordi", "siger", "gør", "må", "helt", "bare", "tak", "altså", "hvordan", "hvorfor", "vej", "nej", "ja", "eller", "forstå*", "sker", "bør", "muligt", "eller", "stå", "ske", "ny", "vist", "lade", "særlig", "hvilke", "virkelig", "spørger*", "fik", "hørt", "kigge*", "osv")
+```
+
+
+**Stopord og custom stopord fjernes**
+Padding er = TRUE, da der efterfølgende søges efter bigrams.  
+Hvis Paddin = FALSE, vil indeksene, hvor stopordene tidligere befandt sig blive overtaget af nye ord.  
+Bigram vil derfor sætte ord sammen, som ikke burde hænge sammen  
+```{r}
+topic_tokens_stopwords <- tokens_remove(topic_tokens, pattern = stopwords("da"), padding = TRUE)
+
+topic_tokens_stopwords <- tokens_remove(topic_tokens_stopwords, pattern = custom_stopwords, padding = TRUE)
+```
+
+
+**Forsøg på at finde bi-grams**
+```{r}
+topic_tokens_compound<- tokens_select(topic_tokens_stopwords, 
+                                      pattern = "[a-z|æ|ø|å]+",
+                                      valuetype = "regex",
+                                      case_insensitive = FALSE, 
+                                      padding = TRUE)
+
+### sæt minimum antal sammenfald til 10
+tstat_col_cap <- textstat_collocations(topic_tokens_compound, size = 2, min_count = 5, tolower = FALSE)
+```
+
+
+**Ord der er fundet gennem texstat_collocation sættes sammen med en underscore**
+```{r}
+topic_tokens_stopword_comp <- tokens_compound(topic_tokens_stopwords, pattern = tstat_col_cap[tstat_col_cap$z > 3,], case_insensitive = FALSE)
+```
+
+**Token-objektet konverteres til en data frame matrix (DFM)**
+```{r}
+topic_DFM <- dfm(topic_tokens_stopword_comp)
+topfeatures(topic_DFM, 30)
+```
+
+**DFM stemmes**
+```{r}
+language = quanteda_options("danish")
+topic_DFM_stem <- dfm_wordstem(topic_DFM)
+```
+
+**DFM trimmes**
+Fjerner ord der optræder mindre en fem gange eller i mere en 10% af alle dokumenterne  
+```{r}
+topic_DFM_trimmed <- dfm_trim(topic_DFM_stem, min_termfreq = 5, max_docfreq = 0.1, docfreq_type = "prop")
+```
+
+
+
+
+**LDA-model**
+
+**Modellen estimeres ud fra 9 topics**  
+9 topics er fundet iterativt, hvorefter denne værdi er vurderet som den, med de mest forståelige topics 
+```{r}
+set.seed(125)
+topic_model_lda <- textmodel_lda(topic_DFM_trimmed, k= 9, )
+terms(topic_model_lda, 9)
+```
+
+**Hver tale i DF_topic tilføjes det topic, som det primært hører til**
+```{r}
+DF_topic$topic <- topics(topic_model_lda)
+```
+
+
+**Oolong test**
+Anvendes til at validere topic-modellen
+```{r}
+oolongtest_rater1 <- witi(topic_model_lda, topic_corp, userid = "Karoline")
+oolongtest_rater2 <- clone_oolong(oolongtest_rater1, userid = "John")
+oolongtest_rater3 <- clone_oolong(oolongtest_rater2, userid = "Rasmus")
+```
+Koder 1:
+```{r}
+oolongtest_rater1$do_word_intrusion_test()
+oolongtest_rater1$do_topic_intrusion_test()
+
+# Hvis du ønsker at teste selv, skal linjen under her køres. Ellers kør den med (force = TRUE)
+#oolongtest_rater1$lock()
+
+oolongtest_rater1$lock(force = TRUE)
+
+```
+
+
+Koder 2:
+```{r}
+oolongtest_rater2$do_word_intrusion_test()
+oolongtest_rater2$do_topic_intrusion_test()
+
+# Hvis du ønsker at teste selv, skal linjen under her køres. Ellers kør den med (force = TRUE)
+#oolongtest_rater2$lock()
+
+oolongtest_rater2$lock(force = TRUE)
+
+```
+
+Koder 3:
+```{r}
+oolongtest_rater3$do_word_intrusion_test()
+oolongtest_rater3$do_topic_intrusion_test()
+
+# Hvis du ønsker at teste selv, skal linjen under her køres. Ellers kør den med (force = TRUE)
+#oolongtest_rater3$lock()
+
+oolongtest_rater3$lock(force = TRUE)
+```
+
+**P-værdien for testen findes**
+```{r}
+summarize_oolong(oolongtest_rater1, oolongtest_rater2, oolongtest_rater3)
+```
+
+
+**Hvert topic i DF_topic tildeles et navn**
+```{r}
+DF_topic$topic <- gsub("topic1", "Ukendt", DF_topic$topic)
+DF_topic$topic <- gsub("topic2", "Tilbagetræking", DF_topic$topic)
+DF_topic$topic <- gsub("topic3", "EU samarbejde", DF_topic$topic)
+DF_topic$topic <- gsub("topic4", "Parlamentarisk proces", DF_topic$topic)
+DF_topic$topic <- gsub("topic5", "Aftale mellem parter", DF_topic$topic)
+DF_topic$topic <- gsub("topic6", "Grøn omstilling", DF_topic$topic)
+DF_topic$topic <- gsub("topic7", "Privat kommunal ældrepleje", DF_topic$topic)
+DF_topic$topic <- gsub("topic8", "Skattepolitik", DF_topic$topic)
+DF_topic$topic <- gsub("topic9", "Unge på arbejdsmarkedet", DF_topic$topic)
+```
+
+**Der laves en ny dataframe til at finde de mest saliente emner**
+```{r}
+saliens_tabel <- aggregate(list("Tre_F" = DF_topic$treF_count, "FOA" = DF_topic$FOA_count, "DA" = DF_topic$DA_count, "DI"= DF_topic$DI_count), by = list(party = DF_topic$party, "topic" = DF_topic$topic, "regering_s" = DF_topic$regering_s, "regering_v" = DF_topic$regering_v), sum)
+```
+
+
+**Tabellen vendes (pivot) til et langt format, så den er nemmer at visualisere**
+```{r}
+saliens_tabel <- saliens_tabel %>%
+  pivot_longer(cols = names(saliens_tabel)[5:8],
+                    values_to = "hyppighed") %>% 
+  select(party, regering_s, regering_v, topic,hyppighed) 
+```
+
+**Det ukendte topic frasorteres**
+```{r}
+saliens_tabel <- saliens_tabel %>% 
+  filter(!grepl("Ukendt", topic))
+```
+
+**Der tilføjes en ny kolonne, der blot gentager de fire IO-navne 32 gange** 
+```{r}
+saliens_tabel$interesse_org <- rep(c("3F", "FOA","DA", "DI"),times=32)
+``` 
+
+**Der subsettes en tabel for fordelingen af 3F og FOA for S**
+```{r}
+saliens_tabel_S_3FFOA<- saliens_tabel %>% 
+  filter(party == "S" ) %>% 
+  filter(interesse_org == "3F" | interesse_org == "FOA")
+```
+
+
+**Der subsettes en tabel for fordelingen af DA og DI for V**
+```{r}
+saliens_tabel_V_DIDA <- saliens_tabel %>% 
+  filter(party == "V") %>% 
+  filter(interesse_org == "DA" | interesse_org == "DI")
+```
+
+**Udregn andel af nævninger for hver IO**
+Find total-hyppighed for 3F og FOA
+```{r}
+saliens_tabel_S_3FFOA %>% 
+  summarise(total_hyppighed = sum(hyppighed))
+```
+Find total hyppighed for DA og DI  
+```{r}
+saliens_tabel_V_DIDA %>% 
+  summarise(total_hyppighed = sum(hyppighed))
+```
+
+**Udregn %-andel af den samlede frekvens for 3F/FOA og DA/DI**
+
+```{r}
+saliens_tabel_S_3FFOA <- saliens_tabel_S_3FFOA %>% 
+ mutate(andel = hyppighed / 118 * 100)
+
+saliens_tabel_V_DIDA <- saliens_tabel_V_DIDA %>% 
+ mutate(andel = hyppighed / 98 * 100)
+```
+
+
+**Plot fordelingen af 3F og FOA over topics, for S**
+```{r}
+ggplot(saliens_tabel_S_3FFOA,aes(x=topic, y=andel, fill=topic))+
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0))+
+  labs(title = "Socialdemokratiet - 3F og FOA",
+      subtitle = "Nævnte IO'er fordelt over politiske emner, før og efter S var i regering", 
+       x = "", 
+       y = "%-andel af samlede referencer")+ 
+  labs(fill = "Emne") +
+  facet_grid(~regering_s, scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+**Plot fordelingen af DA og DI over topics, for V**
+```{r}
+ggplot(saliens_tabel_V_DIDA,aes(x=topic, y=andel, fill=topic))+
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0))+
+  labs(title = "Venstre - DI & DA",
+      subtitle = "Nævnte IO'er fordelt over politiske emner, før og efter S var i regering", 
+      y = "%-andel af samlede referencer", 
+      x = "")+ 
+  labs(fill = "Emne") +
+
+  facet_grid(~regering_v, scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

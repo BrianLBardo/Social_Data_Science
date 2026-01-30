@@ -1,0 +1,71 @@
+.	05 nov 2014 - 05 nov 2015
+Digital understøttelse af tidlig opsporing
+Kommune: Allerød Kommune
+Teknologi: Medicinhåndtering
+Implementeringsgrad: Fuldt implementeret
+Egenvurdering (1 - 5 stjerner): borgere 5, medarbejdere 4
+.	07 jun 2016 - 24 aug 2017
+Spiserobt
+Kommune: Assens Kommune
+Teknologi: Spise/måltidsteknologi
+Implementeringsgrad: Fuldt implementeret
+.	17 jun 2014 - 25 sep 2015
+Kronika app
+Kommune: Assens Kommune
+Teknologi: Sociale teknologier
+Implementeringsgrad: Implementeringsprojekt
+Egenvurdering (1 - 5 stjerner): borgere 5
+.	01 nov 2016 - I drift
+Exorlive
+Kommune: Albertslund Kommune
+Teknologi: Træningsteknologi
+Implementeringsgrad: Fuldt implementeret
+Egenvurdering (1 - 5 stjerner): borgere 5, medarbejdere 4
+.	01 sep 2016 - 09 may 2019
+Innovationspartnerskab: sensorkop
+Kommune: Albertslund Kommune
+Teknologi: Spise/måltidsteknologi
+Implementeringsgrad: Pilotprojekt
+Egenvurdering (1 - 5 stjerner): borgere 4, medarbejdere 3
+.	01 apr 2015 - I drift
+Telesår
+Kommune: Albertslund Kommune
+Teknologi: Skærmbesøg
+Implementeringsgrad: Fuldt implementeret
+Egenvurdering (1 - 5 stjerner): borgere 5, medarbejdere 4
+.	01 aug 2019 - 31 dec 2020
+Implementering af sensorbleer på Allerød Plejecenter
+Kommune: Allerød Kommune
+Teknologi: Hygiejneteknologi
+Implementeringsgrad: Pilotprojekt
+.	01 may 2014 - I drift
+Digital understøttelse af tidlig opsporing (Allerød)
+Kommune: Allerød Kommune
+Teknologi: Tryghedsskabende teknologi
+Implementeringsgrad: Fuldt implementeret
+Egenvurdering (1 - 5 stjerner): borgere 5, medarbejdere 5
+.	01 nov 2016 - I drift
+Raizer
+Kommune: Assens Kommune
+Teknologi: Mobilitetsteknologi
+Implementeringsgrad: Fuldt implementeret
+.	01 jan 2018 - 31 dec 2019
+Medicinhåndtering
+Kommune: Assens Kommune
+Teknologi: Medicinhåndtering
+Implementeringsgrad: Afsluttet
+.	01 oct 2016 - 31 dec 2018
+Udredningsble
+Kommune: Assens Kommune
+Teknologi: Hygiejneteknologi
+Implementeringsgrad: Implementeringsprojekt
+.	01 jan 2014 - I drift
+Vasketoilet
+Kommune: Assens Kommune
+Teknologi: Hygiejneteknologi
+Implementeringsgrad: Fuldt implementeret
+.	20 oct 2013 - I drift
+Virtuel genoptræning
+Kommune: Assens Kommune
+Teknologi: Træningsteknologi
+Implementeringsgrad: Fuldt implementeret

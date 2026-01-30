@@ -1,0 +1,729 @@
+---
+title: "Topic modellering"
+output: html_notebook
+---
+
+```{r}
+install.packages("quanteda")
+install.packages("quanteda.textstats")
+install.packages("stopwords")
+install.packages("seededlda")
+install.packages("stm")
+install.packages("textdata")
+install.packages("huge")
+### pakken til behandling af text
+library(quanteda)
+library(quanteda.textstats)
+### pakke til at fjerne stopord
+library(stopwords)
+### pakke til LDA topic model
+library(seededlda)
+### pakke til structural topic modelling
+library(stm)
+### pakken vi henter vores data fra
+library(textdata)
+### pakke til netværkskorrelation
+library(huge)
+```
+
+Load pakker ind 
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+Vi indlæser filen og laver et corpus
+```{r}
+load("/work/375031/Kvant Eksamen/parl_speech_sub.Rdata")
+
+corp_parl <- corpus(parl_speech_sub, text_field = "text")
+
+```
+Vi konverterer vores corpus til en dataframe
+```{r}
+DF <- parl_speech_sub
+```
+
+```{r}
+DF_V <- DF %>% 
+  filter(!grepl("S", party))
+
+
+DF_S <- DF %>% 
+  filter(!grepl("V", party))
+```
+
+
+```{r}
+DF$"3F" <- grepl("3F", DF$text)
+
+DF$"3F_count" <- str_count(DF$text, "3F")
+
+DF_V$"3F" <- grepl("3F", DF_V$text)
+
+DF_V$"3F_count" <- str_count(DF_V$text, "3F")
+
+DF_S$"3F" <- grepl("3F", DF_S$text)
+
+DF_S$"3F_count" <- str_count(DF_S$text, "3F")
+
+```
+
+```{r}
+DF_3F_count <- aggregate(DF$"3F_count", by=list(DF$party), sum)
+```
+
+```{r}
+colnames(DF_3F_count) <- c("parti", "hyppighed")
+
+DF_3F_count$parti <- sub("S", "S-3F",DF_3F_count$parti)
+
+DF_3F_count$parti <- sub("V", "V-3F",DF_3F_count$parti)
+
+```
+
+
+```{r}
+plot <- ggplot(DF_3F_count, aes(parti, hyppighed, fill = parti))+
+  geom_bar(stat = "identity", width = 0.5)+
+  labs(title = "Hyppighed af 3F, fordelt efter parti", x = "Parti", y = "Hyppighed")+
+  theme_classic()
+plot
+```
+
+**FOA**
+```{r}
+DF$FOA <- grepl("FOA", DF$text)
+
+DF$FOA_count <- str_count(DF$text, "FOA")
+
+DF_V$FOA <- grepl("FOA", DF_V$text)
+
+DF_V$FOA_count <- str_count(DF_V$text, "FOA")
+
+DF_S$FOA <- grepl("FOA", DF_S$text)
+
+DF_S$FOA_count <- str_count(DF_S$text, "FOA")
+```
+
+```{r}
+DF_FOA_count <- aggregate(DF$"FOA_count", by=list(DF$party), sum)
+```
+
+```{r}
+colnames(DF_FOA_count) <- c("parti", "hyppighed")
+
+DF_FOA_count$parti <- sub("S", "S-FOA",DF_FOA_count$parti)
+
+DF_FOA_count$parti <- sub("V", "V-FOA",DF_FOA_count$parti)
+```
+
+
+```{r}
+plot <- ggplot(DF_FOA_count, aes(parti, hyppighed, fill = parti))+
+  geom_bar(stat = "identity", width = 0.5)+
+  labs(title = "Hyppighed af FOA, fordelt efter parti", x = "Parti", y = "Hyppighed")+
+  theme_classic()
+plot
+```
+
+**Dansk Industri**
+```{r}
+DF$DI <- grepl("Dansk Industri", DF$text)
+
+DF$DI_count <- str_count(DF$text, "Dansk Industri")
+
+DF_V$DI <- grepl("Dansk Industri", DF_V$text)
+
+DF_V$DI_count <- str_count(DF_V$text, "Dansk Industri")
+
+DF_S$DI <- grepl("Dansk Industri", DF_S$text)
+
+DF_S$DI_count <- str_count(DF_S$text, "Dansk Industri")
+```
+
+```{r}
+DF_DI_count <- aggregate(DF$"DI_count", by=list(DF$party), sum)
+```
+
+```{r}
+colnames(DF_DI_count) <- c("parti", "hyppighed")
+
+DF_DI_count$parti <- sub("S", "S-DI",DF_DI_count$parti)
+
+DF_DI_count$parti <- sub("V", "V-DI",DF_DI_count$parti)
+```
+
+
+```{r}
+plot <- ggplot(DF_DI_count, aes(parti, hyppighed, fill = parti))+
+  geom_bar(stat = "identity", width = 0.5)+
+  labs(title = "Hyppighed af Dansk Industri, fordelt efter parti", x = "Parti", y = "Hyppighed")+
+  theme_classic()
+plot
+```
+**Dansk Arbejdsgiverforening**
+```{r}
+DF$DA <- grepl("Dansk Arbejdsgiverforening", DF$text)
+
+DF$DA_count <- str_count(DF$text, "Dansk Arbejdsgiverforening")
+
+DF_V$DA <- grepl("Dansk Arbejdsgiverforening", DF_V$text)
+
+DF_V$DA_count <- str_count(DF_V$text, "Dansk Arbejdsgiverforening")
+
+DF_S$DA <- grepl("Dansk Arbejdsgiverforening", DF_S$text)
+
+DF_S$DA_count <- str_count(DF_S$text, "Dansk Arbejdsgiverforening")
+```
+
+```{r}
+DF_DA_count <- aggregate(DF$"DA_count", by=list(DF$party), sum)
+```
+
+```{r}
+colnames(DF_DA_count) <- c("parti", "hyppighed")
+
+DF_DA_count$parti <- sub("S", "S-DA",DF_DA_count$parti)
+
+DF_DA_count$parti <- sub("V", "V-DA",DF_DA_count$parti)
+```
+
+
+```{r}
+plot <- ggplot(DF_DA_count, aes(parti, hyppighed, fill = parti))+
+  geom_bar(stat = "identity", width = 0.5)+
+  labs(title = "Hyppighed af Dansk Arbejdsgiverforening, fordelt efter parti", x = "Parti", y = "Hyppighed")+
+  theme_classic()
+plot
+```
+
+```{r}
+DF_all_count <- rbind(DF_3F_count, DF_FOA_count, DF_DI_count, DF_DA_count)
+```
+
+```{r}
+plot <- ggplot(DF_all_count, aes(parti, hyppighed, fill = parti))+
+  geom_bar(stat = "identity", width = 0.5)+
+  labs(title = "Hyppighed af interesseorganisation, fordelt efter parti", x = "Parti", y = "Hyppighed")+
+  theme_classic()
+plot
+```
+
+```{r}
+folketings_valg <- as.Date("2015-06-18")
+```
+
+```{r}
+DF_Soc <- DF_S[, c("text", "date", "party", "3F_count", "FOA_count", "DA_count", "DI_count")] %>% 
+  mutate(s_regering = DF_S$date < folketings_valg)
+```
+
+```{r}
+socialdemokratiet_regering <- aggregate(list("3F" = DF_Soc$`3F_count`, FOA = DF_Soc$FOA_count, DA = DF_Soc$DA_count, DI = DF_Soc$DI_count), list(regeringsstatus = DF_Soc$s_regering), sum)
+
+socialdemokratiet_regering <- socialdemokratiet_regering %>% 
+  rename("3F" = X3F)
+```
+
+
+
+
+
+
+
+```{r}
+folketings_valg <- as.Date("2015-06-18")
+```
+
+```{r}
+DF <- DF %>% 
+  mutate(regering_s = DF$date < folketings_valg, 
+         regering_v = DF$date > folketings_valg)
+```
+
+
+
+###Topic analyse###
+**Filtrer taler væk, som ikke nævner IO**
+
+```{r}
+DF <- DF %>% 
+  rename(treF_count = "3F_count")
+```
+
+**Fjern alle der ikke siger noget :)**
+```{r}
+DF_topic <- DF[,c("date","party", "regering_s", "regering_v", "text", "treF_count", "FOA_count", "DA_count", "DI_count")] %>% 
+  filter(FOA_count > 0 | DA_count > 0 | DI_count > 0 | treF_count > 0)
+
+DF_topic[,c("regering_s", "regering_v")] <- str_replace(c(DF_topic$regering_s, DF_topic$regering_v), "TRUE", "I regering")
+DF_topic[,c("regering_s", "regering_v")] <- str_replace(c(DF_topic$regering_s, DF_topic$regering_v), "FALSE", "Ikke i regering")
+```
+
+**Corpus**
+```{r}
+topic_corp <- corpus(DF_topic, text_field = "text")
+```
+
+**Tokenization**
+```{r}
+topic_tokens <- tokens(topic_corp, 
+                       remove_punct = TRUE, 
+                       remove_numbers = TRUE, 
+                       remove_symbols = TRUE)
+
+head(topic_tokens)
+```
+```{r}
+custom_stopwords <- c("se", "ser", "kan", "hvert", "fald", "simpelt", "hen", "faktisk", "stadig", "væk", "gøre", "komme", "så", "sige", "lige", "lidt", "mere", "hr", "fru", "frøken", "frem", "måtte", "ved", "derfor", "fordi", "siger", "gør", "må", "helt", "bare", "tak", "altså", "hvordan", "hvorfor", "vej", "nej", "ja", "eller", "forstå*", "sker", "bør", "muligt", "eller", "stå", "ske", "ny", "vist", "lade", "særlig", "hvilke", "virkelig", "spørger*", "fik", "hørt", "kigge*", "osv")
+
+topic_tokens_stopwords <- tokens_remove(topic_tokens, pattern = stopwords("da"), padding = TRUE)
+
+topic_tokens_stopwords <- tokens_remove(topic_tokens_stopwords, pattern = custom_stopwords, padding = TRUE)
+
+```
+
+*Forsøg på at finde bi-grams*
+```{r}
+topic_tokens_compound<- tokens_select(topic_tokens_stopwords, 
+                                      pattern = "[a-z|æ|ø|å]+",
+                                      valuetype = "regex",
+                                      case_insensitive = FALSE, 
+                                      padding = TRUE)
+
+### sæt minimum antal sammenfald til 10
+tstat_col_cap <- textstat_collocations(topic_tokens_compound, size = 2, min_count = 5, tolower = FALSE)
+```
+
+
+*Forbinder alle ord*
+```{r}
+topic_tokens_stopword_comp <- tokens_compound(topic_tokens_stopwords, pattern = tstat_col_cap[tstat_col_cap$z > 3,], case_insensitive = FALSE)
+```
+
+*DFM tid:)*
+```{r}
+topic_DFM <- dfm(topic_tokens_stopword_comp)
+topfeatures(topic_DFM, 30)
+```
+*stemming af DFM*
+```{r}
+language = quanteda_options("danish")
+topic_DFM_stem <- dfm_wordstem(topic_DFM)
+```
+```{r}
+topfeatures(topic_DFM_stem, 30)
+```
+
+
+*fjern hyppige ord der findes mindre end x i corpus prop = proportions*
+```{r}
+topic_DFM_trimmed <- dfm_trim(topic_DFM_stem, min_termfreq = 5, max_docfreq = 0.1, docfreq_type = "prop")
+```
+
+```{r}
+topfeatures(topic_DFM_trimmed, 30)
+```
+
+
+**LDA-model**
+
+
+```{r}
+set.seed(125)
+topic_model_lda <- textmodel_lda(topic_DFM_trimmed, k= 9, )
+terms(topic_model_lda, 9)
+
+DF_topic$topic <- topics(topic_model_lda)
+```
+
+
+
+
+
+
+
+
+
+```{r}
+install.packages("devtools")
+devtools::install_github("chainsawriot/oolong")
+```
+```{r}
+library(oolong)
+library(keyATM)
+```
+```{r}
+#oolongtest <- create_oolong(stm_7)
+```
+
+
+**Oolong test**
+```{r}
+oolongtest_rater1 <- witi(topic_model_lda, topic_corp, userid = "Karoline")
+oolongtest_rater2 <- clone_oolong(oolongtest_rater1, userid = "John")
+oolongtest_rater3 <- clone_oolong(oolongtest_rater2, userid = "Rasmus")
+
+
+oolongtest_rater1$do_word_intrusion_test()
+oolongtest_rater1$do_topic_intrusion_test()
+oolongtest_rater1$lock()
+
+#oolongtest_rater2$do_word_intrusion_test()
+#oolongtest_rater2$do_topic_intrusion_test()
+#oolongtest_rater2$lock()
+```
+
+```{r}
+oolongtest_rater2$do_word_intrusion_test()
+oolongtest_rater2$do_topic_intrusion_test()
+oolongtest_rater2$lock()
+```
+```{r}
+oolongtest_rater3$do_word_intrusion_test()
+oolongtest_rater3$do_topic_intrusion_test()
+oolongtest_rater3$lock()
+```
+
+
+```{r}
+summarize_oolong(oolongtest_rater1, oolongtest_rater2, oolongtest_rater3)
+```
+
+
+
+
+
+
+```{r}
+DF_topic$topic <- gsub("topic1", "Ukendt", DF_topic$topic)
+DF_topic$topic <- gsub("topic2", "Tilbagetræking", DF_topic$topic)
+DF_topic$topic <- gsub("topic3", "EU samarbejde", DF_topic$topic)
+DF_topic$topic <- gsub("topic4", "Parlamentarisk proces", DF_topic$topic)
+DF_topic$topic <- gsub("topic5", "Aftale mellem parter", DF_topic$topic)
+DF_topic$topic <- gsub("topic6", "Grøn omstilling", DF_topic$topic)
+DF_topic$topic <- gsub("topic7", "Privat kommunal ældrepleje", DF_topic$topic)
+DF_topic$topic <- gsub("topic8", "Skattepolitik", DF_topic$topic)
+DF_topic$topic <- gsub("topic9", "Unge på arbejdsmarkedet", DF_topic$topic)
+
+```
+
+```{r}
+saliens_tabel <- aggregate(list("Tre_F" = DF_topic$treF_count, "FOA" = DF_topic$FOA_count, "DA" = DF_topic$DA_count, "DI"= DF_topic$DI_count), by = list(party = DF_topic$party, "topic" = DF_topic$topic, "regering_s" = DF_topic$regering_s, "regering_v" = DF_topic$regering_v), sum)
+```
+
+```{r}
+saliens_tabel <- saliens_tabel %>%
+  pivot_longer(cols = names(saliens_tabel)[5:8],
+                    values_to = "hyppighed") %>% 
+  select(party, regering_s, regering_v, topic,hyppighed) 
+```
+
+```{r}
+saliens_tabel <- saliens_tabel %>% 
+  filter(!grepl("Ukendt", topic))
+```
+
+```{r}
+saliens_tabel$interesse_org <- rep(c("3F", "FOA","DA", "DI"),times=32)
+``` 
+
+
+
+
+
+```{r}
+saliens_tabel_S_3FFOA<- saliens_tabel %>% 
+  filter(party == "S" ) %>% 
+  filter(interesse_org == "3F" | interesse_org == "FOA")
+```
+
+```{r}
+saliens_tabel_V_DIDA <- saliens_tabel %>% 
+  filter(party == "V") %>% 
+  filter(interesse_org == "DA" | interesse_org == "DI")
+```
+
+**Udregn andel af nævninger for hver IO**
+Find total-hyppighed for 3F og FOA
+```{r}
+saliens_tabel_S_3FFOA %>% 
+  summarise(total_hyppighed = sum(hyppighed))
+```
+
+```{r}
+saliens_tabel_V_DIDA %>% 
+  summarise(total_hyppighed = sum(hyppighed))
+```
+
+
+Lav ny kolonne med andel af 
+```{r}
+saliens_tabel_S_3FFOA <- saliens_tabel_S_3FFOA %>% 
+ mutate(andel = hyppighed / 118 * 100)
+
+saliens_tabel_V_DIDA <- saliens_tabel_V_DIDA %>% 
+ mutate(andel = hyppighed / 98 * 100)
+
+
+```
+
+
+
+```{r}
+ggplot(saliens_tabel_S_3FFOA,aes(x=topic, y=andel, fill=topic))+
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0))+
+  labs(title = "Socialdemokratiet - 3F og FOA",
+      subtitle = "Nævnte IO'er fordelt over politiske emner, før og efter S var i regering", 
+       x = "", 
+       y = "%-andel af samlede nævninger")+ 
+  labs(fill = "Emne") +
+  facet_grid(~regering_s, scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+
+```{r}
+ggplot(saliens_tabel_V_DIDA,aes(x=topic, y=andel, fill=topic))+
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0))+
+  labs(title = "Venstre - DI & DA",
+      subtitle = "Nævnte IO'er fordelt over politiske emner, før og efter S var i regering", 
+      y = "%-andel af samlede nævninger", 
+      x = "")+ 
+  labs(fill = "Emne") +
+
+  facet_grid(~regering_v, scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), 
+        axis.ticks.x = element_blank())
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+**STM model**
+```{r}
+stm_prep <- convert(topic_DFM_trimmed, to = "stm", docvars = docvars(topic_DFM_trimmed))
+
+stm_7 <- stm(vocab = stm_prep$vocab, 
+              documents = stm_prep$documents,
+              data = stm_prep$meta,
+              K = 8,
+              init.type = "LDA",
+             seed = 12345)
+
+```
+```{r}
+plot.STM(stm_7,
+         type = "labels",
+         n=12,
+         topics = c(1, 2, 3, 4, 5, 6, 7))
+```
+```{r}
+topic_names <- c("Tilbagetrækning",
+                 "Ukendt1",
+                 "Grøn omstillingi",
+                 "Arbejdsvilkår",
+                 "Ukendt 2",
+                 "Beskæftigelse",
+                 "Ligestilling")
+
+```
+
+```{r}
+plot.STM(stm_7, custom.labels = topic_names)
+```
+```{r}
+plot.STM(stm_7, type = "hist", custom.labels = topic_names)
+```
+```{r}
+### korreler topics
+stm_7_corrs<-topicCorr(stm_7, method = c("huge"),
+                        verbose = TRUE)
+plot(stm_7_corrs, topics = NULL, vlabels = NULL,
+     layout = NULL, vertex.color = "green", vertex.label.cex = 0.75,
+     vertex.label.color = "black", vertex.size = NULL)
+
+```
+```{r}
+#which_k <- searchK(vocab = stm_prep$vocab, 
+                  #documents = stm_prep$documents, 
+                 # data = stm_prep$meta, 
+                  #K = c(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                  #init.type = "Spectral",
+                  #seed = 5435435)
+
+#plot(which_k)
+```
+```{r}
+which_k <- searchK(vocab = stm_prep$vocab, 
+                   documents = stm_prep$documents, 
+                   data = stm_prep$meta, 
+                   K = c(4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15),
+                   init.type = "Spectral",
+                   seed = 12345)
+
+```
+```{r}
+plot(which_k)
+```
+```{r}
+install.packages("devtools")
+devtools::install_github("chainsawriot/oolong")
+```
+```{r}
+library(oolong)
+library(keyATM)
+```
+```{r}
+#oolongtest <- create_oolong(stm_7)
+```
+
+```{r}
+#oolongtest_rater1 <- witi(stm_7, topic_corp, userid = "Karoline")
+#oolongtest_rater2 <- clone_oolong(oolongtest_rater1, userid = "John")
+
+#oolongtest_rater1$do_word_intrusion_test()
+#oolongtest_rater1$do_topic_intrusion_test()
+#oolongtest_rater1$lock()
+
+#oolongtest_rater2$do_word_intrusion_test()
+#oolongtest_rater2$do_topic_intrusion_test()
+#oolongtest_rater2$lock()
+
+
+```
+
+```{r}
+#oolongtest_rater2$do_word_intrusion_test()
+#oolongtest_rater2$do_topic_intrusion_test()
+#oolongtest_rater2$lock()
+
+```
+
+```{r}
+#summarize_oolong(oolongtest_rater1, oolongtest_rater2)
+
+```
+```{r}
+apply(stm_7$theta, MARGIN=1, FUN=which.max)
+
+```
+```{r}
+theta_stm <- list(apply(stm_7$theta, MARGIN=1, FUN=which.max))
+```
+
+```{r}
+theta_STM_DF <- as.data.frame(theta_stm)
+colnames(theta_STM_DF) <- "topic"
+DF_topic <- cbind(DF_topic, theta_STM_DF)
+DF_topic$topic <- gsub("1", "Tilbagetrækning", DF_topic$topic)
+DF_topic$topic <- gsub("2", "Ukendt 1", DF_topic$topic)
+DF_topic$topic <- gsub("3", "Grøn omstilling", DF_topic$topic)
+DF_topic$topic <- gsub("4", "Arbejdsvilkår", DF_topic$topic)
+DF_topic$topic <- gsub("5", "Ukendt 2", DF_topic$topic)
+DF_topic$topic <- gsub("6", "Beskæftigelse", DF_topic$topic)
+DF_topic$topic <- gsub("7", "Ligestilling", DF_topic$topic)
+
+```
+
+```{r}
+install.packages("tidytext")
+library(tidytext)
+install.packages("reshape2")
+library(reshape2)
+```
+```{r}
+antal <- as.data.frame(table(DF$agenda))
+```
+
+
+```{r}
+topic_5 <- tidy(stm_7,matrix = "beta")
+# choose 15 words with highest beta from each topic
+top_terms_5 <- topic_5 %>%
+  group_by(topic) %>%
+  top_n(15,beta) %>% 
+  ungroup() %>%
+  arrange(topic,-beta)
+# plot the topic and words for easy interpretation
+plot_topic_5 <- top_terms_5 %>%
+  mutate(term = reorder_within(term, beta, topic)) %>%
+  ggplot(aes(term, beta, fill = factor(topic))) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ topic, scales = "free") +
+  coord_flip() +
+  scale_x_reordered()
+plot_topic_5
+```
+
+
+
+```{r}
+saliens_tabel <- aggregate(list("Tre_F" = DF_topic$treF_count, "FOA" = DF_topic$FOA_count, "DA" = DF_topic$DA_count, "DI"= DF_topic$DI_count), by = list("topic" = DF_topic$topic), sum)
+```
+
+```{r}
+saliens_tabel <- saliens_tabel %>%
+  pivot_longer(cols = names(saliens_tabel)[2:5],
+                    values_to = "hyppighed") %>% 
+  select(topic,hyppighed) 
+```
+
+```{r}
+saliens_tabel$interesse_org <- rep(c("3F", "FOA","DA", "DI"),times=5)
+```
+```{r}
+saliens_tabel <- saliens_tabel %>% 
+  filter(!grepl("Ukendt", topic))
+```
+
+ 
+ 
+```{r}
+ggplot(saliens_tabel,aes(x=topic, y=hyppighed, fill=topic))+
+  geom_bar(stat = "identity", width = 0.9) +
+  scale_y_continuous(expand = c(0,0))+
+  labs(title = "Hyppighed af nævnte interesseorganisationer i politiske emner", 
+       x = "Interesseorganisationer", 
+       y = "Hyppighed")+ 
+  facet_grid(~interesse_org, scales = "free", switch = "x", space = "free_x")+ 
+  theme(panel.spacing = unit(0, units = "cm"), 
+        strip.background = element_rect(fill = "white"), 
+        panel.background = element_rect(fill = 'white'),
+        axis.text.x = element_blank(), axis.ticks.x = element_blank())
+```
+```{r}
+ap_topics <- tidy(stm_7, matrix = "beta")
+ap_topics
+```
+
+
